@@ -8,7 +8,7 @@ alltraps:
   pushl %es
   pushl %fs
   pushl %gs
-  pushal
+  pushal  # 将所有通用目的寄存器push进栈
   
   # Set up data segments.
   movw $(SEG_KDATA<<3), %ax

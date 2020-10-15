@@ -44,6 +44,7 @@
 volatile uint *lapic;  // Initialized in mp.c
 
 //PAGEBREAK!
+//写入局部高级可编程中断控制器
 static void
 lapicw(int index, int value)
 {

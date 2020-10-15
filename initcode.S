@@ -12,7 +12,7 @@ start:
   pushl $init
   pushl $0  // where caller pc would be
   movl $SYS_exec, %eax
-  int $T_SYSCALL
+  int $T_SYSCALL # exec system call
 
 # for(;;) exit();
 exit:

@@ -7,6 +7,7 @@
 #include "proc.h"
 #include "spinlock.h"
 
+// 进程表
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];

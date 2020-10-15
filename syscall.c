@@ -128,14 +128,17 @@ static int (*syscalls[])(void) = {
 [SYS_close]   sys_close,
 };
 
+// 调用系统调用并设置当前进程的trapframe的返回值为系统调用变量
 void
 syscall(void)
 {
   int num;
   struct proc *curproc = myproc();
 
+  //读出系统调用号：SYS_exec
   num = curproc->tf->eax;
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
+    //保存系统调用函数的返回值。在trap返回用户态时，会从cp->tf中加载其值到寄存器中
     curproc->tf->eax = syscalls[num]();
   } else {
     cprintf("%d %s: unknown sys call %d\n",

@@ -8,6 +8,7 @@
 
 .globl swtch
 swtch:
+  # %esp指向系统调用结束后的返回地址，参数就恰好在%esp之上，第n个参数就在%esp+4+4*n
   movl 4(%esp), %eax
   movl 8(%esp), %edx
 

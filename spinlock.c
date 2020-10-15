@@ -101,6 +101,7 @@ holding(struct spinlock *lock)
 // it takes two popcli to undo two pushcli.  Also, if interrupts
 // are off, then pushcli, popcli leaves them off.
 
+// cli: clear interruption flag
 void
 pushcli(void)
 {

@@ -1,6 +1,6 @@
 struct buf {
   int flags;
-  uint dev;
+  uint dev;  // 设备号
   uint blockno;
   struct sleeplock lock;
   uint refcnt;

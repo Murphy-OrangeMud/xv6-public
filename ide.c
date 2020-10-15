@@ -14,10 +14,10 @@
 #include "buf.h"
 
 #define SECTOR_SIZE   512
-#define IDE_BSY       0x80
+#define IDE_BSY       0x80  //busy
 #define IDE_DRDY      0x40
 #define IDE_DF        0x20
-#define IDE_ERR       0x01
+#define IDE_ERR       0x01  //error
 
 #define IDE_CMD_READ  0x20
 #define IDE_CMD_WRITE 0x30
@@ -54,7 +54,9 @@ ideinit(void)
 
   initlock(&idelock, "ide");
   ioapicenable(IRQ_IDE, ncpu - 1);
+  //打开IDE_IRQ中断。多处理器中断（但只是打开最后一个CPU的中断）
   idewait(0);
+  //等待磁盘接受命令
 
   // Check if disk 1 is present
   outb(0x1f6, 0xe0 | (1<<4));
@@ -115,7 +117,7 @@ ideintr(void)
   idequeue = b->qnext;
 
   // Read data if needed.
-  if(!(b->flags & B_DIRTY) && idewait(1) >= 0)
+  if(!(b->flags & B_DIRTY) && idewait(1) >= 0) //若返回值大于等于0，则是要等读取磁盘
     insl(0x1f0, b->data, BSIZE/4);
 
   // Wake process waiting for this buf.
@@ -158,7 +160,7 @@ iderw(struct buf *b)
   if(idequeue == b)
     idestart(b);
 
-  // Wait for request to finish.
+  // Wait for request to finish. xv6调度其他进程保持CPU出于工作状态
   while((b->flags & (B_VALID|B_DIRTY)) != B_VALID){
     sleep(b, &idelock);
   }
