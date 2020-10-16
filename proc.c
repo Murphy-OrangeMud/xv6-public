@@ -106,10 +106,10 @@ found:
   // Set up new context to start executing at forkret,
   // which returns to trapret.
   sp -= 4;
-  *(uint*)sp = (uint)trapret;
+  *(uint*)sp = (uint)trapret;  //新的进程都从forkret开始执行，而forkret执行完会返回trapret
 
   sp -= sizeof *p->context;
-  p->context = (struct context*)sp;
+  p->context = (struct context*)sp;  //将p的上下文指向sp处，然后清零（相当于push所有的寄存器）
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
 
@@ -127,9 +127,9 @@ userinit(void)
   p = allocproc();
   
   initproc = p;
-  if((p->pgdir = setupkvm()) == 0)
+  if((p->pgdir = setupkvm()) == 0)  //为进程创建一个只有内核内存映射的页表
     panic("userinit: out of memory?");
-  inituvm(p->pgdir, _binary_initcode_start, (int)_binary_initcode_size);
+  inituvm(p->pgdir, _binary_initcode_start, (int)_binary_initcode_size); //汇编器把已经编译好的initcode.S放入内核，用这个函数初始化
   p->sz = PGSIZE;
   memset(p->tf, 0, sizeof(*p->tf));
   p->tf->cs = (SEG_UCODE << 3) | DPL_USER;
