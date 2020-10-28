@@ -32,24 +32,25 @@ seginit(void)
 // Return the address of the PTE in page table pgdir
 // that corresponds to virtual address va.  If alloc!=0,
 // create any required page table pages.
+//两级翻译机制：先在页表的表中找到页表（页表基地址和页表项），然后在页表中找到物理地址
 static pte_t *
 walkpgdir(pde_t *pgdir, const void *va, int alloc)
 {
-  pde_t *pde;
+  pde_t *pde;  //PDE: page dir entry
   pte_t *pgtab;
 
-  pde = &pgdir[PDX(va)];
-  if(*pde & PTE_P){
-    pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
+  pde = &pgdir[PDX(va)];  //pgdir：页表地址，在页表中读出物理地址的索引
+  if(*pde & PTE_P){  //该页存在
+    pgtab = (pte_t*)P2V(PTE_ADDR(*pde));  //PTE_ADDR：页表项地址。找到pde对应的页表。注意pgdir中存放的是物理地址
   } else {
-    if(!alloc || (pgtab = (pte_t*)kalloc()) == 0)
+    if(!alloc || (pgtab = (pte_t*)kalloc()) == 0)  //该页不存在且没有内存空间了
       return 0;
     // Make sure all those PTE_P bits are zero.
-    memset(pgtab, 0, PGSIZE);
+    memset(pgtab, 0, PGSIZE);  //把offset设置成0（小端法）
     // The permissions here are overly generous, but they can
     // be further restricted by the permissions in the page table
     // entries, if necessary.
-    *pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U;
+    *pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U;  //物理地址，设置权限位（offset）
   }
   return &pgtab[PTX(va)];
 }
@@ -57,18 +58,19 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
 // Create PTEs for virtual addresses starting at va that refer to
 // physical addresses starting at pa. va and size might not
 // be page-aligned.
+// 如果映射内存失败，返回-1
 static int
-mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
+mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)  //将一段连续的虚拟内存分别映射到物理内存（不一定连续）
 {
   char *a, *last;
   pte_t *pte;
 
-  a = (char*)PGROUNDDOWN((uint)va);
+  a = (char*)PGROUNDDOWN((uint)va);  //往下对齐
   last = (char*)PGROUNDDOWN(((uint)va) + size - 1);
   for(;;){
-    if((pte = walkpgdir(pgdir, a, 1)) == 0)
+    if((pte = walkpgdir(pgdir, a, 1)) == 0)  //不存在虚拟地址对应的该页且分配页失败
       return -1;
-    if(*pte & PTE_P)
+    if(*pte & PTE_P)  //页面已经存在
       panic("remap");
     *pte = pa | perm | PTE_P;
     if(a == last)
@@ -126,7 +128,7 @@ setupkvm(void)
   memset(pgdir, 0, PGSIZE);
   if (P2V(PHYSTOP) > (void*)DEVSPACE)
     panic("PHYSTOP too high");
-  for(k = kmap; k < &kmap[NELEM(kmap)]; k++)
+  for(k = kmap; k < &kmap[NELEM(kmap)]; k++)  //分别映射每一个内存段
     if(mappages(pgdir, k->virt, k->phys_end - k->phys_start,
                 (uint)k->phys_start, k->perm) < 0) {
       freevm(pgdir);
@@ -146,6 +148,7 @@ kvmalloc(void)
 
 // Switch h/w page table register to the kernel-only page table,
 // for when no process is running.
+// 切换到内核栈空间
 void
 switchkvm(void)
 {
@@ -179,6 +182,7 @@ switchuvm(struct proc *p)
 
 // Load the initcode into address 0 of pgdir.
 // sz must be less than a page.
+// 为initcode.S初始化栈空间
 void
 inituvm(pde_t *pgdir, char *init, uint sz)
 {
@@ -232,13 +236,13 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
   a = PGROUNDUP(oldsz);
   for(; a < newsz; a += PGSIZE){
     mem = kalloc();
-    if(mem == 0){
+    if(mem == 0){  //分配物理内存失败
       cprintf("allocuvm out of memory\n");
       deallocuvm(pgdir, newsz, oldsz);
       return 0;
     }
     memset(mem, 0, PGSIZE);
-    if(mappages(pgdir, (char*)a, PGSIZE, V2P(mem), PTE_W|PTE_U) < 0){
+    if(mappages(pgdir, (char*)a, PGSIZE, V2P(mem), PTE_W|PTE_U) < 0){  //映射物理内存失败（为什么？）
       cprintf("allocuvm out of memory (2)\n");
       deallocuvm(pgdir, newsz, oldsz);
       kfree(mem);
@@ -263,10 +267,10 @@ deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 
   a = PGROUNDUP(newsz);
   for(; a  < oldsz; a += PGSIZE){
-    pte = walkpgdir(pgdir, (char*)a, 0);
+    pte = walkpgdir(pgdir, (char*)a, 0);  //与虚拟地址对应的页表项地址（物理地址是*pte）
     if(!pte)
-      a = PGADDR(PDX(a) + 1, 0, 0) - PGSIZE;
-    else if((*pte & PTE_P) != 0){
+      a = PGADDR(PDX(a) + 1, 0, 0) - PGSIZE;  //向上对齐页面
+    else if((*pte & PTE_P) != 0){  //页面已经存在，则释放
       pa = PTE_ADDR(*pte);
       if(pa == 0)
         panic("kfree");

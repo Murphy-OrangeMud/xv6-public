@@ -19,9 +19,9 @@ struct run {
 
 struct {
   struct spinlock lock;
-  int use_lock;
+  int use_lock;  //是否需要锁保护（？）
   struct run *freelist;
-} kmem;
+} kmem;  //内核地址空间
 
 // Initialization happens in two phases.
 // 1. main() calls kinit1() while still using entrypgdir to place just
@@ -47,8 +47,8 @@ void
 freerange(void *vstart, void *vend)
 {
   char *p;
-  p = (char*)PGROUNDUP((uint)vstart);
-  for(; p + PGSIZE <= (char*)vend; p += PGSIZE)
+  p = (char*)PGROUNDUP((uint)vstart);  //4字节往上对齐
+  for(; p + PGSIZE <= (char*)vend; p += PGSIZE)  
     kfree(p);
 }
 //PAGEBREAK: 21
@@ -67,10 +67,10 @@ kfree(char *v)
   // Fill with junk to catch dangling refs.
   memset(v, 1, PGSIZE);
 
-  if(kmem.use_lock)
+  if(kmem.use_lock)  //这一页是否需要锁保护
     acquire(&kmem.lock);
   r = (struct run*)v;
-  r->next = kmem.freelist;
+  r->next = kmem.freelist;  //将这一页加在空闲链表头
   kmem.freelist = r;
   if(kmem.use_lock)
     release(&kmem.lock);
@@ -79,6 +79,7 @@ kfree(char *v)
 // Allocate one 4096-byte page of physical memory.
 // Returns a pointer that the kernel can use.
 // Returns 0 if the memory cannot be allocated.
+// 分配一页物理内存
 char*
 kalloc(void)
 {

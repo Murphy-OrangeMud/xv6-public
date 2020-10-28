@@ -73,10 +73,10 @@ struct segdesc {
 // page directory index
 #define PDX(va)         (((uint)(va) >> PDXSHIFT) & 0x3FF)
 
-// page table index
+// page table index，虚拟地址的中间10位
 #define PTX(va)         (((uint)(va) >> PTXSHIFT) & 0x3FF)
 
-// construct virtual address from indexes and offset
+// construct virtual address from indexes and offset 根据数据建立虚拟地址
 #define PGADDR(d, t, o) ((uint)((d) << PDXSHIFT | (t) << PTXSHIFT | (o)))
 
 // Page directory and page table constants.
@@ -96,7 +96,7 @@ struct segdesc {
 #define PTE_U           0x004   // User
 #define PTE_PS          0x080   // Page Size
 
-// Address in page table or page directory entry
+// Address in page table or page directory entry  页表项地址
 #define PTE_ADDR(pte)   ((uint)(pte) & ~0xFFF)
 #define PTE_FLAGS(pte)  ((uint)(pte) &  0xFFF)
 

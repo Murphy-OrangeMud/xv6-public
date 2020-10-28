@@ -17,8 +17,8 @@ extern char end[]; // first address after kernel loaded from ELF file
 int
 main(void)
 {
-  kinit1(end, P2V(4*1024*1024)); // phys page allocator
-  kvmalloc();      // kernel page table
+  kinit1(end, P2V(4*1024*1024)); // phys page allocator  //初始化内核的物理内存空间
+  kvmalloc();      // kernel page table  //初始化内核的页表
   mpinit();        // detect other processors
   lapicinit();     // interrupt controller
   seginit();       // segment descriptors
@@ -32,7 +32,7 @@ main(void)
   fileinit();      // file table
   ideinit();       // disk 
   startothers();   // start other processors
-  kinit2(P2V(4*1024*1024), P2V(PHYSTOP)); // must come after startothers()
+  kinit2(P2V(4*1024*1024), P2V(PHYSTOP)); // must come after startothers() //初始化用户的内存空间
   userinit();      // first user process
   mpmain();        // finish this processor's setup
 }
